@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sala Inteligente — Control por Voz (PC)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --noche: #1b1917;
+    --panel: #24211e;
+    --panel-borde: #3a352f;
+    --lampara: #e8a33d;
+    --lampara-suave: rgba(232,163,61,0.16);
+    --crema: #f2e9dc;
+    --crema-tenue: #b8ada0;
+    --menta: #6e9b8a;
+    --rosa: #c4634f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: radial-gradient(ellipse 900px 500px at 50% -10%, rgba(232,163,61,0.10), transparent 60%), var(--noche);
+    font-family: 'Inter', sans-serif; color: var(--crema);
+    padding: 36px 20px 60px; display: flex; flex-direction: column; align-items: center;
+  }
+  .encabezado { text-align: center; max-width: 480px; margin-bottom: 24px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--menta); font-weight: 600; margin-bottom: 6px; }
+  h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 32px; margin: 0 0 8px; }
+  .subt { color: var(--crema-tenue); font-size: 14px; line-height: 1.5; margin: 0; }
+
+  .config { width: 100%; max-width: 480px; margin-bottom: 20px; background: var(--panel); border: 1px solid var(--panel-borde); border-radius: 14px; padding: 16px; }
+  .campo { margin-bottom: 12px; }
+  .campo:last-child { margin-bottom: 0; }
+  .campo label { font-size: 12px; color: var(--crema-tenue); display: block; margin-bottom: 6px; }
+  .campo input {
+    width: 100%; background: #17150f; border: 1px solid var(--panel-borde); border-radius: 8px;
+    padding: 10px 12px; color: var(--crema); font-size: 14px; font-family: 'Inter', sans-serif;
+  }
+  .campo input:focus { outline: 2px solid var(--lampara); outline-offset: 1px; }
+
+  .zona-estado { display: flex; flex-direction: column; align-items: center; margin-bottom: 26px; }
+  .indicador {
+    width: 96px; height: 96px; border-radius: 50%; border: none; cursor: pointer;
+    background: radial-gradient(circle at 35% 30%, #3a352f, #201d19 70%);
+    box-shadow: inset 0 0 0 1px var(--panel-borde), 0 8px 20px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center; transition: box-shadow 0.3s ease;
+  }
+  .indicador svg { width: 34px; height: 34px; fill: var(--crema-tenue); transition: fill 0.3s ease; }
+  .indicador.activo {
+    background: radial-gradient(circle at 35% 30%, #f2c473, var(--lampara) 75%);
+    box-shadow: 0 0 0 8px var(--lampara-suave), 0 0 40px 6px rgba(232,163,61,0.5);
+    animation: respirar 1.6s ease-in-out infinite;
+  }
+  .indicador.activo svg { fill: #2a1f0d; }
+  .indicador.despierto {
+    animation: respirar 0.6s ease-in-out infinite;
+    box-shadow: 0 0 0 10px rgba(232,163,61,0.28), 0 0 55px 10px rgba(232,163,61,0.7);
+  }
+  @keyframes respirar {
+    0%, 100% { box-shadow: 0 0 0 8px var(--lampara-suave), 0 0 40px 6px rgba(232,163,61,0.5); }
+    50% { box-shadow: 0 0 0 14px var(--lampara-suave), 0 0 55px 10px rgba(232,163,61,0.65); }
+  }
+  .estado-texto { margin-top: 12px; font-size: 13px; color: var(--crema-tenue); text-align: center; }
+  .transcripcion { margin-top: 4px; font-family: 'Fraunces', serif; font-size: 16px; color: var(--lampara); min-height: 22px; text-align: center; max-width: 380px; }
+
+  .habitacion { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+  .dispositivo { background: var(--panel); border: 1px solid var(--panel-borde); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
+  .icono { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #17150f; border: 1px solid var(--panel-borde); }
+  .icono svg { width: 20px; height: 20px; fill: var(--crema-tenue); }
+  .info-dispositivo { flex: 1; min-width: 0; }
+  .nombre-dispositivo { font-size: 14px; font-weight: 600; }
+  .estado-dispositivo { font-size: 12px; color: var(--crema-tenue); margin-top: 1px; }
+  .estado-dispositivo.encendido { color: var(--lampara); }
+  .acciones-dispositivo { display: flex; gap: 6px; }
+  .acciones-dispositivo button { background: #17150f; border: 1px solid var(--panel-borde); color: var(--crema-tenue); border-radius: 8px; padding: 7px 11px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+  .bitacora { width: 100%; max-width: 480px; border-top: 1px solid var(--panel-borde); padding-top: 14px; }
+  .bitacora-titulo { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--crema-tenue); margin-bottom: 8px; }
+  .bitacora-lista { display: flex; flex-direction: column; gap: 5px; max-height: 140px; overflow-y: auto; }
+  .bitacora-item { font-size: 12.5px; color: var(--crema-tenue); display: flex; gap: 8px; }
+  .bitacora-item .hora { color: #6b6459; flex-shrink: 0; }
+  .bitacora-item.error { color: var(--rosa); }
+  .bitacora-item.ok { color: var(--menta); }
+  .bitacora-item.despertar { color: var(--lampara); font-weight: 600; }
+</style>
+</head>
+<body>
+
+  <div class="encabezado">
+    <div class="eyebrow">Sala domótica · ESP32</div>
+    <h1>Control por voz</h1>
+    <p class="subt">Activa la escucha una vez y di la palabra clave antes de cada comando — no necesitas tocar nada más.</p>
+  </div>
+
+  <div class="config">
+    <div class="campo">
+      <label for="ip">IP del ESP32</label>
+      <input id="ip" type="text" placeholder="192.168.1.50" inputmode="decimal">
+    </div>
+    <div class="campo">
+      <label for="palabraClave">Palabra clave de activación</label>
+      <input id="palabraClave" type="text" value="casa">
+    </div>
+  </div>
+
+  <div class="zona-estado">
+    <button class="indicador" id="botonEscucha" aria-label="Activar escucha continua">
+      <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V6a3 3 0 00-6 0v5a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
+    </button>
+    <div class="estado-texto" id="estadoTexto">Toca para activar la escucha continua</div>
+    <div class="transcripcion" id="transcripcion"></div>
+  </div>
+
+  <div class="habitacion">
+    <div class="dispositivo">
+      <div class="icono"><svg viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19a7 7 0 00-4 12.74V17h8v-2.26A7 7 0 0012 2z"/></svg></div>
+      <div class="info-dispositivo">
+        <div class="nombre-dispositivo">Luz</div>
+        <div class="estado-dispositivo" id="estadoLuz">Apagada</div>
+      </div>
+      <div class="acciones-dispositivo">
+        <button onclick="enviarComando('luz_on')">Encender</button>
+        <button onclick="enviarComando('luz_off')">Apagar</button>
+      </div>
+    </div>
+    <div class="dispositivo">
+      <div class="icono"><svg viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 4h18v2H3V8zm0 4h18v2H3v-2zm0 4h18v2H3v-2z"/></svg></div>
+      <div class="info-dispositivo">
+        <div class="nombre-dispositivo">Persiana</div>
+        <div class="estado-dispositivo" id="estadoPersiana">Cerrada</div>
+      </div>
+      <div class="acciones-dispositivo">
+        <button onclick="enviarComando('persiana_abrir')">Abrir</button>
+        <button onclick="enviarComando('persiana_cerrar')">Cerrar</button>
+      </div>
+    </div>
+    <div class="dispositivo">
+      <div class="icono"><svg viewBox="0 0 24 24"><path d="M4 4h16v14H4V4zm2 2v10h12V6H6zm2 2h3v3H8V8zm5 5h3v3h-3v-3z"/></svg></div>
+      <div class="info-dispositivo">
+        <div class="nombre-dispositivo">Cuadro dinámico</div>
+        <div class="estado-dispositivo" id="estadoCuadro">Obra 1</div>
+      </div>
+      <div class="acciones-dispositivo">
+        <button onclick="enviarComando('cuadro_siguiente')">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bitacora">
+    <div class="bitacora-titulo">Registro</div>
+    <div class="bitacora-lista" id="bitacora"></div>
+  </div>
+
+<script>
+  const campoIp = document.getElementById('ip');
+  const campoPalabraClave = document.getElementById('palabraClave');
+  const botonEscucha = document.getElementById('botonEscucha');
+  const estadoTexto = document.getElementById('estadoTexto');
+  const transcripcion = document.getElementById('transcripcion');
+  const bitacora = document.getElementById('bitacora');
+
+  const reglas = [
+    { patron: /(prend|encend|enciend).*luz|luz.*(prend|encend|enciend)/, comando: 'luz_on' },
+    { patron: /apag.*luz|luz.*apag/, comando: 'luz_off' },
+    { patron: /abr.*persiana|persiana.*abr/, comando: 'persiana_abrir' },
+    { patron: /(cerr|cierr).*persiana|persiana.*(cerr|cierr)/, comando: 'persiana_cerrar' },
+    { patron: /(siguiente|cambia|otro).*cuadro|cuadro.*(siguiente|cambia|otro)/, comando: 'cuadro_siguiente' },
+  ];
+
+  function anotar(texto, tipo) {
+    const item = document.createElement('div');
+    item.className = 'bitacora-item' + (tipo ? ' ' + tipo : '');
+    const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    item.innerHTML = `<span class="hora">${hora}</span><span>${texto}</span>`;
+    bitacora.prepend(item);
+  }
+
+  async function enviarComando(accion) {
+    const ip = campoIp.value.trim();
+    if (!ip) { anotar('Falta escribir la IP del ESP32', 'error'); return; }
+    try {
+      const resp = await fetch(`http://${ip}/comando?accion=${accion}`);
+      const texto = await resp.text();
+      anotar(texto, 'ok');
+      actualizarEstados(accion);
+    } catch (err) {
+      anotar('No se pudo contactar al ESP32', 'error');
+    }
+  }
+
+  function actualizarEstados(accion) {
+    if (accion === 'luz_on') { document.getElementById('estadoLuz').textContent = 'Encendida'; document.getElementById('estadoLuz').classList.add('encendido'); }
+    if (accion === 'luz_off') { document.getElementById('estadoLuz').textContent = 'Apagada'; document.getElementById('estadoLuz').classList.remove('encendido'); }
+    if (accion === 'persiana_abrir') document.getElementById('estadoPersiana').textContent = 'Abierta';
+    if (accion === 'persiana_cerrar') document.getElementById('estadoPersiana').textContent = 'Cerrada';
+    if (accion === 'cuadro_siguiente') {
+      const el = document.getElementById('estadoCuadro');
+      const n = ((parseInt(el.textContent.slice(-1)) % 3) + 1);
+      el.textContent = 'Obra ' + n;
+    }
+  }
+
+  // --- Reconocimiento de voz continuo con palabra clave ---
+  const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let escuchandoActivo = false;
+  let motor;
+  let temporizadorDespierto = null;
+
+  if (!Reconocimiento) {
+    estadoTexto.textContent = 'Tu navegador no soporta reconocimiento de voz. Usa Chrome en PC.';
+    botonEscucha.disabled = true;
+  } else {
+    motor = new Reconocimiento();
+    motor.lang = 'es-CO';
+    motor.continuous = true;
+    motor.interimResults = true;
+
+    motor.onresult = (evento) => {
+      let ultimoResultado = evento.results[evento.results.length - 1];
+      let dicho = ultimoResultado[0].transcript.toLowerCase().trim();
+      transcripcion.textContent = '"' + dicho + '"';
+
+      const palabraClave = campoPalabraClave.value.trim().toLowerCase();
+      if (!palabraClave) return;
+
+      if (dicho.includes(palabraClave)) {
+        // Extrae lo que viene despues de la palabra clave
+        const idx = dicho.indexOf(palabraClave);
+        const resto = dicho.slice(idx + palabraClave.length).trim();
+
+        botonEscucha.classList.add('despierto');
+        estadoTexto.textContent = 'Te escucho...';
+        if (temporizadorDespierto) clearTimeout(temporizadorDespierto);
+        temporizadorDespierto = setTimeout(() => {
+          botonEscucha.classList.remove('despierto');
+          estadoTexto.textContent = 'Escuchando en segundo plano...';
+        }, 2500);
+
+        if (ultimoResultado.isFinal && resto) {
+          const regla = reglas.find(r => r.patron.test(resto));
+          if (regla) {
+            anotar('Comando: "' + resto + '"', 'despertar');
+            enviarComando(regla.comando);
+          } else {
+            anotar('No reconocí el comando: "' + resto + '"', 'error');
+          }
+        }
+      }
+    };
+
+    motor.onerror = (e) => {
+      if (e.error === 'no-speech') return; // normal en escucha continua
+      anotar('Error del reconocimiento: ' + e.error, 'error');
+    };
+
+    motor.onend = () => {
+      // Reinicia automaticamente para mantener la escucha continua
+      if (escuchandoActivo) {
+        try { motor.start(); } catch (e) {}
+      }
+    };
+
+    botonEscucha.addEventListener('click', () => {
+      if (!escuchandoActivo) {
+        escuchandoActivo = true;
+        motor.start();
+        botonEscucha.classList.add('activo');
+        estadoTexto.textContent = 'Escuchando en segundo plano... di "' + campoPalabraClave.value + '" antes de tu comando';
+        anotar('Escucha continua activada', 'ok');
+      } else {
+        escuchandoActivo = false;
+        motor.stop();
+        botonEscucha.classList.remove('activo', 'despierto');
+        estadoTexto.textContent = 'Toca para activar la escucha continua';
+        transcripcion.textContent = '';
+        anotar('Escucha continua desactivada', 'ok');
+      }
+    });
+  }
+</script>
+</body>
+</html>
